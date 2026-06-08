@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { z } from "zod"
-
-const staffSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  role: z.string().min(1).max(50).optional(),
-  bio: z.string().max(500).optional().nullable(),
-  photoUrl: z.string().url().optional().nullable(),
-  instagram: z.string().max(100).optional().nullable(),
-  isActive: z.boolean().optional(),
-})
+import { updateStaffSchema } from "@/lib/validations/staff"
 
 export async function GET(
   request: NextRequest,
@@ -50,7 +41,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const parsed = staffSchema.safeParse(body)
+    const parsed = updateStaffSchema.safeParse(body)
 
     if (!parsed.success) {
       return NextResponse.json(

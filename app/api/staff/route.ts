@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { z } from "zod"
-
-const staffSchema = z.object({
-  name: z.string().min(1, "El nombre es obligatorio").max(100),
-  role: z.string().min(1, "El rol es obligatorio").max(50),
-  bio: z.string().max(500).optional().nullable(),
-  photoUrl: z.string().url("Debe ser una URL válida").optional().nullable(),
-  instagram: z.string().max(100).optional().nullable(),
-  isActive: z.boolean().optional().default(true),
-})
+import { staffSchema } from "@/lib/validations/staff"
 
 export async function GET(request: NextRequest) {
   try {
