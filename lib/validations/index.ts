@@ -1,3 +1,6 @@
 export * from "./auth"
 export * from "./service"
 export * from "./appointment"
+export * from "./staff"
+export * from "./gallery"
+export * from "./business-config"
