@@ -57,6 +57,8 @@ async function main() {
     { key: "address",         value: "Av. Principal 123, Lima" },
     { key: "instagram",       value: "@peluqueriabella" },
     { key: "opening_hours",   value: "Lunes a Sábado: 9am - 6pm" },
+    { key: "email",           value: "contacto@glamstudio.pe" },
+    { key: "facebook",        value: "glamstudiope" },
   ]
 
   for (const item of config) {
