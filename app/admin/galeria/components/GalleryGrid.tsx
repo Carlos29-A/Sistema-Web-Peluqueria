@@ -1,9 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import Image from "next/image"
 import GalleryForm from "./GalleryForm"
+import type { GalleryTableItem } from "@/types"
+import Pagination from "@/components/admin/Pagination"
+import SearchInput from "@/components/admin/SearchInput"
 import {
   Plus,
   Pencil,
@@ -14,57 +17,65 @@ import {
   Eye,
   X,
 } from "lucide-react"
-
-interface GalleryItem {
-  id: string
-  imageUrl: string
-  description: string | null
-  category: string | null
-  staffId: string | null
-  isFeatured: boolean
-  staff: {
-    name: string
-  } | null
-}
+import { apiFetch, PaginationMeta } from "@/lib/api-client"
+import { ApiError } from "next/dist/server/api-utils"
 
 const CATEGORIES = ["Cortes", "Colores", "Peinados", "Tratamientos", "Novias", "Maquillaje", "Barba"]
 
 type Filter = "ALL" | "FEATURED" | string
+const LIMIT = 20
 
 export default function GalleryGrid() {
-  const [items, setItems] = useState<GalleryItem[]>([])
+  const [items, setItems] = useState<GalleryTableItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState("")
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<"create" | "edit">("create")
-  const [editingItem, setEditingItem] = useState<GalleryItem | undefined>(undefined)
-  const [deletingItem, setDeletingItem] = useState<GalleryItem | null>(null)
-  const [deletingAction, setDeletingAction] = useState(false)
+  const [editingItem, setEditingItem] = useState<GalleryTableItem | undefined>(undefined)
+  const [deletingItem, setDeletingItem] = useState<GalleryTableItem | null>(null)
+  const [previewItem, setPreviewItem] = useState<GalleryTableItem | null>(null)
   const [filter, setFilter] = useState<Filter>("ALL")
-  const [previewItem, setPreviewItem] = useState<GalleryItem | null>(null)
+  const [deletingAction, setDeletingAction] = useState(false)
 
-  const fetchGallery = async (f: Filter) => {
+  const loadGallery = async (f: Filter, p: number, s: string) => {
     try {
-      let url = "/api/gallery"
-      if (f === "FEATURED") url = "/api/gallery?featured=true"
-      else if (f !== "ALL") url = `/api/gallery?category=${f}`
+      const params = new URLSearchParams({ page: String(p), limit: String(LIMIT) })
+      if (f === "FEATURED") params.set("featured", "true")
+      else if (f !== "ALL") params.set("category", f)
+      if (s) params.set("search", s)
 
-      const res = await fetch(url)
-      const data = await res.json()
-      return data.gallery ?? []
+      const { data: gallery, meta } = await apiFetch<GalleryTableItem[], PaginationMeta>(`/api/gallery?${params}`)
+      return { gallery, total: meta.total, totalPages: meta.totalPages }
     } catch {
       toast.error("Error al cargar la galería")
-      return []
+      return { gallery: [] as GalleryTableItem[], total: 0, totalPages: 0 }
     }
   }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
-    fetchGallery(filter).then((data) => {
-      setItems(data)
+    loadGallery(filter, page, search).then((data) => {
+      setItems(data.gallery ?? [])
+      setTotal(data.total ?? 0)
+      setTotalPages(data.totalPages ?? 0)
       setLoading(false)
     })
-  }, [filter])
+  }, [filter, page, search])
+
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value)
+    setPage(1)
+  }, [])
+
+  function handleFilterChange(f: Filter) {
+    setFilter(f)
+    setPage(1)
+    setSearch("")
+  }
 
   function handleCreate() {
     setFormMode("create")
@@ -72,7 +83,7 @@ export default function GalleryGrid() {
     setFormOpen(true)
   }
 
-  function handleEdit(item: GalleryItem) {
+  function handleEdit(item: GalleryTableItem) {
     setFormMode("edit")
     setEditingItem(item)
     setFormOpen(true)
@@ -86,10 +97,14 @@ export default function GalleryGrid() {
   function handleSuccess() {
     setFormOpen(false)
     setEditingItem(undefined)
-    fetchGallery(filter).then(setItems)
+    loadGallery(filter, page, search).then((data) => {
+      setItems(data.gallery ?? [])
+      setTotal(data.total ?? 0)
+      setTotalPages(data.totalPages ?? 0)
+    })
   }
 
-  function openDeleteModal(item: GalleryItem) {
+  function openDeleteModal(item: GalleryTableItem) {
     setDeletingItem(item)
   }
 
@@ -97,16 +112,15 @@ export default function GalleryGrid() {
     if (!deletingItem) return
     setDeletingAction(true)
     try {
-      const res = await fetch(`/api/gallery/${deletingItem.id}`, { method: "DELETE" })
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.error || "Error al eliminar")
-      }
+      await apiFetch(`/api/gallery/${deletingItem.id}`, { method: "DELETE" })
       toast.success("Imagen eliminada", { duration: 3000 })
-      fetchGallery(filter).then(setItems)
+      loadGallery(filter, page, search).then((data) => {
+        setItems(data.gallery)
+        setTotal(data.total)
+        setTotalPages(data.totalPages)
+      })
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error al eliminar"
-      toast.error(msg, { duration: 3000 })
+      toast.error(err instanceof ApiError ? err.message : "Error al eliminar la imagen", { duration: 3000 })
     } finally {
       setDeletingAction(false)
       setDeletingItem(null)
@@ -146,7 +160,7 @@ export default function GalleryGrid() {
           {filters.map((f) => (
             <button
               key={f.value}
-              onClick={() => setFilter(f.value)}
+              onClick={() => handleFilterChange(f.value)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
                 filter === f.value
                   ? "bg-cyan-500 text-white shadow-sm"
@@ -157,6 +171,14 @@ export default function GalleryGrid() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="mb-4">
+        <SearchInput
+          placeholder="Buscar imagen por descripción o categoría..."
+          value={search}
+          onSearch={handleSearch}
+        />
       </div>
 
       {items.length === 0 ? (
@@ -229,6 +251,14 @@ export default function GalleryGrid() {
           ))}
         </div>
       )}
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        limit={LIMIT}
+        onPageChange={setPage}
+      />
 
       {formOpen && (
         <GalleryForm
@@ -311,7 +341,7 @@ function ImagePreviewModal({
   item,
   onClose,
 }: {
-  item: GalleryItem
+  item: GalleryTableItem
   onClose: () => void
 }) {
   return (

@@ -1,67 +1,67 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import type { AppointmentTableItem, StatusFilter } from "@/types"
 import AppointmentForm from "./AppointmentForm"
 import StatusBadge from "./StatusBadge"
+import Pagination from "@/components/admin/Pagination"
+import SearchInput from "@/components/admin/SearchInput"
 import { Plus, Pencil, Trash2, Loader2, Calendar, Filter } from "lucide-react"
+import { ApiError, apiFetch, PaginationMeta } from "@/lib/api-client"
 
-interface Appointment {
-  id: string
-  clientName: string
-  clientEmail: string
-  clientPhone: string
-  serviceId: string
-  staffId: string | null
-  appointmentDate: string
-  appointmentTime: string
-  status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED"
-  notes: string | null
-  totalPrice: number | null
-  service: {
-    name: string
-    price: number
-    duration: number
-  }
-  staff: {
-    name: string
-  } | null
-}
-
-type StatusFilter = "ALL" | "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED"
+const LIMIT = 20
 
 export default function AppointmentTable() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL")
-  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [search, setSearch] = useState("")
+  const [appointments, setAppointments] = useState<AppointmentTableItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<"create" | "edit">("create")
-  const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>(undefined)
-  const [deletingAppointment, setDeletingAppointment] = useState<Appointment | null>(null)
+  const [editingAppointment, setEditingAppointment] = useState<AppointmentTableItem | undefined>(undefined)
+  const [deletingAppointment, setDeletingAppointment] = useState<AppointmentTableItem | null>(null)
   const [deletingAction, setDeletingAction] = useState(false)
 
-  const fetchAppointments = async (filter: StatusFilter) => {
+  const loadAppointments = async (filter: StatusFilter, p: number, s: string) => {
     try {
-      const url = filter === "ALL" ? "/api/appointments" : `/api/appointments?status=${filter}`
-      const res = await fetch(url)
-      const data = await res.json()
-      return data.appointments ?? []
+      const params = new URLSearchParams({ page: String(p), limit: String(LIMIT) })
+      if (filter !== "ALL") params.set("status", filter)
+      if (s) params.set("search", s)
+      const { data: appointments, meta } = await apiFetch<AppointmentTableItem[], PaginationMeta>(`/api/appointments?${params}`)
+      return { appointments, total: meta.total, totalPages: meta.totalPages }
     } catch {
       toast.error("Error al cargar las citas")
-      return []
+      return { appointments: [] as AppointmentTableItem[], total: 0, totalPages: 0 }
     }
   }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
-    fetchAppointments(statusFilter).then((data) => {
-      setAppointments(data)
+    loadAppointments(statusFilter, page, search).then((data) => {
+      setAppointments(data.appointments)
+      setTotal(data.total)
+      setTotalPages(data.totalPages)
       setLoading(false)
     })
-  }, [statusFilter])
+  }, [statusFilter, page, search])
+
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value)
+    setPage(1)
+  }, [])
+
+  function handleFilterChange(filter: StatusFilter) {
+    setStatusFilter(filter)
+    setPage(1)
+    setSearch("")
+  }
 
   function handleCreate() {
     setFormMode("create")
@@ -69,7 +69,7 @@ export default function AppointmentTable() {
     setFormOpen(true)
   }
 
-  function handleEdit(appointment: Appointment) {
+  function handleEdit(appointment: AppointmentTableItem) {
     setFormMode("edit")
     setEditingAppointment(appointment)
     setFormOpen(true)
@@ -83,10 +83,14 @@ export default function AppointmentTable() {
   function handleSuccess() {
     setFormOpen(false)
     setEditingAppointment(undefined)
-    fetchAppointments(statusFilter).then(setAppointments)
+    loadAppointments(statusFilter, page, search).then((data) => {
+      setAppointments(data.appointments)
+      setTotal(data.total)
+      setTotalPages(data.totalPages)
+    })
   }
 
-  function openDeleteModal(appointment: Appointment) {
+  function openDeleteModal(appointment: AppointmentTableItem) {
     setDeletingAppointment(appointment)
   }
 
@@ -94,28 +98,27 @@ export default function AppointmentTable() {
     if (!deletingAppointment) return
     setDeletingAction(true)
     try {
-      const res = await fetch(`/api/appointments/${deletingAppointment.id}`, { method: "DELETE" })
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.error || "Error al eliminar")
-      }
+      await apiFetch(`/api/appointments/${deletingAppointment.id}`, { method: "DELETE" })
       toast.success("Cita eliminada", { duration: 3000 })
-      fetchAppointments(statusFilter).then(setAppointments)
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error al eliminar"
-      toast.error(msg, { duration: 3000 })
+      loadAppointments(statusFilter, page, search).then((data) => {
+        setAppointments(data.appointments)
+        setTotal(data.total)
+        setTotalPages(data.totalPages)
+      })
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Error al eliminar", { duration: 3000 })
     } finally {
       setDeletingAction(false)
       setDeletingAppointment(null)
     }
   }
 
-  const filters: { value: StatusFilter; label: string; count: number }[] = [
-    { value: "ALL", label: "Todas", count: appointments.length },
-    { value: "PENDING", label: "Pendientes", count: appointments.filter((a) => a.status === "PENDING").length },
-    { value: "CONFIRMED", label: "Confirmadas", count: appointments.filter((a) => a.status === "CONFIRMED").length },
-    { value: "COMPLETED", label: "Completadas", count: appointments.filter((a) => a.status === "COMPLETED").length },
-    { value: "CANCELLED", label: "Canceladas", count: appointments.filter((a) => a.status === "CANCELLED").length },
+  const filters: { value: StatusFilter; label: string }[] = [
+    { value: "ALL", label: "Todas" },
+    { value: "PENDING", label: "Pendientes" },
+    { value: "CONFIRMED", label: "Confirmadas" },
+    { value: "COMPLETED", label: "Completadas" },
+    { value: "CANCELLED", label: "Canceladas" },
   ]
 
   if (loading) {
@@ -135,14 +138,14 @@ export default function AppointmentTable() {
             {filters.map((filter) => (
               <button
                 key={filter.value}
-                onClick={() => setStatusFilter(filter.value)}
+                onClick={() => handleFilterChange(filter.value)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
                   statusFilter === filter.value
                     ? "bg-rose-500 text-white shadow-sm"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                {filter.label} ({filter.count})
+                {filter.label}
               </button>
             ))}
           </div>
@@ -156,12 +159,20 @@ export default function AppointmentTable() {
         </button>
       </div>
 
+      <div className="mb-4">
+        <SearchInput
+          placeholder="Buscar cliente por nombre o email..."
+          value={search}
+          onSearch={handleSearch}
+        />
+      </div>
+
       {appointments.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm border border-dashed border-gray-300 rounded-lg">
           <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-          {statusFilter === "ALL"
+          {total === 0
             ? "No hay citas registradas. Crea la primera."
-            : `No hay citas con estado "${statusFilter.toLowerCase()}"`}
+            : "No hay citas en esta página."}
         </div>
       ) : (
         <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white">
@@ -232,6 +243,14 @@ export default function AppointmentTable() {
           </table>
         </div>
       )}
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        limit={LIMIT}
+        onPageChange={setPage}
+      />
 
       {formOpen && (
         <AppointmentForm

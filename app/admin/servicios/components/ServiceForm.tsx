@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { serviceSchema, ServiceInput } from "@/lib/validations/service"
 import { X } from "lucide-react"
 import ImageUpload from "./ImageUpload"
+import { ApiError, apiFetch } from "@/lib/api-client"
 
 interface ServiceFormProps {
   mode: "create" | "edit"
@@ -63,24 +64,17 @@ export default function ServiceForm({
           : "/api/services"
       const method = mode === "edit" ? "PUT" : "POST"
 
-      const res = await fetch(url, {
+      await apiFetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
-
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.error || "Error al guardar")
-      }
-
       toast.success(
         mode === "create" ? "Servicio creado correctamente" : "Servicio actualizado",
         { duration: 3000 }
       )
       onSuccess()
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error inesperado"
+      const msg = err instanceof ApiError ? err.message : "Error inesperado"
       setSubmitError(msg)
       toast.error(msg, { duration: 3000 })
     } finally {
@@ -131,7 +125,10 @@ export default function ServiceForm({
                 Precio ($) <span className="text-violet-500">*</span>
               </label>
               <input
-                {...register("price")}
+                {...register("price", {
+                  setValueAs: (v) => (v === "" || v === undefined ? undefined : Number(v)),
+                  required: "El precio es obligatorio",
+                })}
                 type="number"
                 step="0.01"
                 min="0"
@@ -146,7 +143,10 @@ export default function ServiceForm({
                 Duración (min) <span className="text-violet-500">*</span>
               </label>
               <input
-                {...register("duration")}
+                {...register("duration", {
+                  setValueAs: (v) => (v === "" || v === undefined ? undefined : Number(v)),
+                  required: "La duración es obligatoria",
+                })}
                 type="number"
                 min="1"
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 focus:outline-none text-sm transition"
@@ -181,7 +181,7 @@ export default function ServiceForm({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Imagen del servicio
+              Imagen del servicio <span className="text-violet-500">*</span>
             </label>
             <ImageUpload
               value={imageUrl}
@@ -190,6 +190,9 @@ export default function ServiceForm({
                 setValue("imageUrl", url)
               }}
             />
+            {errors.imageUrl && (
+              <p className="text-xs text-red-500 mt-1">{errors.imageUrl.message}</p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

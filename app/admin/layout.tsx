@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Scissors,
   Users,
+  Clock,
   Image,
   Settings,
   Menu,
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/admin/citas", label: "Citas", icon: CalendarDays },
   { href: "/admin/servicios", label: "Servicios", icon: Scissors },
   { href: "/admin/staff", label: "Staff", icon: Users },
+  { href: "/admin/horarios", label: "Horarios", icon: Clock },
   { href: "/admin/galeria", label: "Galería", icon: Image },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings },
 ]

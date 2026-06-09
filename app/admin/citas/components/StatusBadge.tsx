@@ -1,6 +1,7 @@
+import type { AppointmentStatus } from "@/types"
 import { Calendar, CheckCircle2, Clock, XCircle } from "lucide-react"
 
-type Status = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED"
+type Status = AppointmentStatus
 
 const config: Record<Status, { label: string; className: string; icon: typeof Clock }> = {
   PENDING: {

@@ -1,53 +1,67 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
+import type { StaffTableItem } from "@/types"
 import StaffForm from "./StaffForm"
-import { Plus, Pencil, Trash2, Loader2, Users, AtSign, UserCircle } from "lucide-react"
+import Pagination from "@/components/admin/Pagination"
+import SearchInput from "@/components/admin/SearchInput"
+import { Plus, Pencil, Trash2, Loader2, Users, AtSign, UserCircle, Power } from "lucide-react"
 import Image from "next/image"
-
-interface Staff {
-  id: string
-  name: string
-  role: string
-  bio: string | null
-  photoUrl: string | null
-  instagram: string | null
-  isActive: boolean
-}
+import { ApiError, apiFetch, PaginationMeta } from "@/lib/api-client"
 
 type Filter = "ALL" | "ACTIVE" | "INACTIVE"
+const LIMIT = 20
 
 export default function StaffTable() {
-  const [staff, setStaff] = useState<Staff[]>([])
+  const [staff, setStaff] = useState<StaffTableItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState("")
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<"create" | "edit">("create")
-  const [editingStaff, setEditingStaff] = useState<Staff | undefined>(undefined)
-  const [deletingStaff, setDeletingStaff] = useState<Staff | null>(null)
+  const [editingStaff, setEditingStaff] = useState<StaffTableItem | undefined>(undefined)
+  const [deletingStaff, setDeletingStaff] = useState<StaffTableItem | null>(null)
   const [deletingAction, setDeletingAction] = useState(false)
   const [filter, setFilter] = useState<Filter>("ALL")
 
-  const fetchStaff = async (f: Filter) => {
+  const loadStaff = async (f: Filter, p: number, s: string) => {
     try {
-      const url = f === "ACTIVE" ? "/api/staff?active=true" : "/api/staff"
-      const res = await fetch(url)
-      const data = await res.json()
-      return data.staff ?? []
+      const params = new URLSearchParams({ page: String(p), limit: String(LIMIT) })
+      if (f === "ACTIVE") params.set("active", "true")
+      else if (f === "INACTIVE") params.set("active", "false")
+      if (s) params.set("search", s)
+      const { data: staff, meta } = await apiFetch<StaffTableItem[], PaginationMeta>(`/api/staff?${params}`)
+      return { staff, total: meta.total, totalPages: meta.totalPages }
     } catch {
       toast.error("Error al cargar el staff")
-      return []
+      return { staff: [] as StaffTableItem[], total: 0, totalPages: 0 }
     }
   }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
-    fetchStaff(filter).then((data) => {
-      setStaff(filter === "INACTIVE" ? data.filter((s: Staff) => !s.isActive) : data)
+    loadStaff(filter, page, search).then((data) => {
+      setStaff(data.staff)
+      setTotal(data.total)
+      setTotalPages(data.totalPages)
       setLoading(false)
     })
-  }, [filter])
+  }, [filter, page, search])
+
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value)
+    setPage(1)
+  }, [])
+
+  function handleFilterChange(f: Filter) {
+    setFilter(f)
+    setPage(1)
+    setSearch("")
+  }
 
   function handleCreate() {
     setFormMode("create")
@@ -55,7 +69,7 @@ export default function StaffTable() {
     setFormOpen(true)
   }
 
-  function handleEdit(member: Staff) {
+  function handleEdit(member: StaffTableItem) {
     setFormMode("edit")
     setEditingStaff(member)
     setFormOpen(true)
@@ -69,12 +83,14 @@ export default function StaffTable() {
   function handleSuccess() {
     setFormOpen(false)
     setEditingStaff(undefined)
-    fetchStaff(filter).then((data) => {
-      setStaff(filter === "INACTIVE" ? data.filter((s: Staff) => !s.isActive) : data)
+    loadStaff(filter, page, search).then((data) => {
+      setStaff(data.staff)
+      setTotal(data.total)
+      setTotalPages(data.totalPages)
     })
   }
 
-  function openDeleteModal(member: Staff) {
+  function openDeleteModal(member: StaffTableItem) {
     setDeletingStaff(member)
   }
 
@@ -82,21 +98,41 @@ export default function StaffTable() {
     if (!deletingStaff) return
     setDeletingAction(true)
     try {
-      const res = await fetch(`/api/staff/${deletingStaff.id}`, { method: "DELETE" })
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.error || "Error al eliminar")
-      }
+      await apiFetch(`/api/staff/${deletingStaff.id}`, { method: "DELETE" })
       toast.success("Miembro del staff eliminado", { duration: 3000 })
-      fetchStaff(filter).then((data) => {
-        setStaff(filter === "INACTIVE" ? data.filter((s: Staff) => !s.isActive) : data)
+      loadStaff(filter, page, search).then((data) => {
+        setStaff(data.staff)
+        setTotal(data.total)
+        setTotalPages(data.totalPages)
       })
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error al eliminar"
-      toast.error(msg, { duration: 3000 })
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Error al eliminar", { duration: 3000 })
     } finally {
       setDeletingAction(false)
       setDeletingStaff(null)
+    }
+  }
+
+  async function toggleActive(member: StaffTableItem) {
+    const newState = !member.isActive
+    setStaff((prev) =>
+      prev.map((m) => (m.id === member.id ? { ...m, isActive: newState } : m))
+    )
+
+    try {
+      await apiFetch(`/api/staff/${member.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ isActive: newState }),
+      })
+      toast.success(
+        newState ? "Staff activado" : "Staff desactivado",
+        { duration: 2000 }
+      )
+    } catch {
+      setStaff((prev) =>
+        prev.map((m) => (m.id === member.id ? { ...m, isActive: !newState } : m))
+      )
+      toast.error("Error al actualizar el estado")
     }
   }
 
@@ -122,7 +158,7 @@ export default function StaffTable() {
             {filters.map((f) => (
               <button
                 key={f.value}
-                onClick={() => setFilter(f.value)}
+                onClick={() => handleFilterChange(f.value)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
                   filter === f.value
                     ? "bg-amber-500 text-white shadow-sm"
@@ -143,11 +179,18 @@ export default function StaffTable() {
         </button>
       </div>
 
+      <div className="mb-4">
+        <SearchInput
+          placeholder="Buscar miembro por nombre o rol..."
+          value={search}
+          onSearch={handleSearch}
+        />
+      </div>
+
       {staff.length === 0 ? (
         <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg bg-gradient-to-b from-amber-50/50 to-white">
           <UserCircle className="w-12 h-12 mx-auto mb-3 text-amber-300" />
           <p className="text-gray-500 text-sm">No hay miembros del staff registrados</p>
-          <p className="text-gray-400 text-xs mt-1">Agrega al primer miembro de tu equipo</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -204,6 +247,17 @@ export default function StaffTable() {
               </div>
               <div className="flex justify-end gap-1 mt-3 pt-3 border-t border-gray-100">
                 <button
+                  onClick={() => toggleActive(member)}
+                  className={`p-1.5 rounded-md transition ${
+                    member.isActive
+                      ? "hover:bg-amber-50 text-amber-500 hover:text-amber-600"
+                      : "hover:bg-gray-100 text-gray-300 hover:text-gray-500"
+                  }`}
+                  title={member.isActive ? "Desactivar" : "Activar"}
+                >
+                  <Power className="w-3.5 h-3.5" />
+                </button>
+                <button
                   onClick={() => handleEdit(member)}
                   className="p-1.5 hover:bg-amber-50 text-gray-500 hover:text-amber-600 rounded-md transition"
                   title="Editar"
@@ -222,6 +276,14 @@ export default function StaffTable() {
           ))}
         </div>
       )}
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        limit={LIMIT}
+        onPageChange={setPage}
+      />
 
       {formOpen && (
         <StaffForm

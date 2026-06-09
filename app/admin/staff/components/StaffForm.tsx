@@ -1,12 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
-import { X, AlertCircle } from "lucide-react"
+import { X, AlertCircle, Scissors, Loader2 } from "lucide-react"
 import { staffSchema, type StaffInput } from "@/lib/validations/staff"
 import ImageUpload from "@/app/admin/servicios/components/ImageUpload"
+import { ApiError, apiFetch } from "@/lib/api-client"
+
+interface ServiceOption {
+  id: string
+  name: string
+}
 
 interface StaffFormProps {
   mode: "create" | "edit"
@@ -18,6 +24,7 @@ interface StaffFormProps {
     photoUrl: string | null
     instagram: string | null
     isActive: boolean
+    staffServices?: { service: { id: string; name: string } }[]
   }
   onSuccess: () => void
   onClose: () => void
@@ -32,6 +39,11 @@ export default function StaffForm({
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [photoUrl, setPhotoUrl] = useState<string | null>(initialData?.photoUrl ?? null)
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
+    initialData?.staffServices?.map((ss) => ss.service.id) ?? []
+  )
+  const [allServices, setAllServices] = useState<ServiceOption[]>([])
+  const [loadingServices, setLoadingServices] = useState(true)
 
   const {
     register,
@@ -39,6 +51,7 @@ export default function StaffForm({
     setValue,
     formState: { errors },
   } = useForm<StaffInput>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(staffSchema) as any,
     defaultValues: {
       name: initialData?.name ?? "",
@@ -49,6 +62,24 @@ export default function StaffForm({
       isActive: initialData?.isActive ?? true,
     },
   })
+
+  useEffect(() => {
+    apiFetch<ServiceOption[]>("/api/services")
+      .then(({data}) => {
+        setAllServices(data)
+        setLoadingServices(false)
+      })
+      .catch(() => {
+        toast.error("Error al cargar los servicios")
+        setLoadingServices(false)
+      })
+  }, [])
+
+  function toggleService(serviceId: string) {
+    setSelectedServiceIds((prev) =>
+      prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]
+    )
+  }
 
   async function onSubmit(data: StaffInput) {
     setSubmitting(true)
@@ -67,15 +98,17 @@ export default function StaffForm({
         instagram: data.instagram || null,
       }
 
-      const res = await fetch(url, {
+      const { data: createdStaff } = await apiFetch<{ id: string }>(url, {
         method,
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
 
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.error || "Error al guardar")
+      const staffId = mode === "edit" ? initialData?.id : createdStaff.id
+      if (staffId) {
+        await apiFetch(`/api/staff/${staffId}/services`, {
+          method: "PUT",
+          body: JSON.stringify({ serviceIds: selectedServiceIds }),
+        })
       }
 
       toast.success(
@@ -83,8 +116,8 @@ export default function StaffForm({
         { duration: 3000 }
       )
       onSuccess()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error inesperado"
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Error inesperado"
       setSubmitError(msg)
       toast.error(msg, { duration: 3000 })
     } finally {
@@ -202,6 +235,48 @@ export default function StaffForm({
               <p className="flex items-center gap-1 text-xs text-red-500 mt-1">
                 <AlertCircle className="w-3 h-3" />
                 {errors.instagram.message}
+              </p>
+            )}
+          </div>
+
+          {/* Servicios asignados */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Servicios que ofrece <span className="text-gray-400">(opcional)</span>
+            </label>
+            {loadingServices ? (
+              <div className="flex items-center gap-2 py-3 text-sm text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Cargando servicios...
+              </div>
+            ) : allServices.length === 0 ? (
+              <p className="text-sm text-gray-500 py-3">No hay servicios disponibles</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {allServices.map((service) => {
+                  const isChecked = selectedServiceIds.includes(service.id)
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      onClick={() => toggleService(service.id)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left text-sm transition-all duration-200 ${
+                        isChecked
+                          ? "border-amber-400 bg-amber-50 text-amber-700"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                      }`}
+                    >
+                      <Scissors className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{service.name}</span>
+                      {isChecked && <span className="ml-auto text-amber-500">✓</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {selectedServiceIds.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1.5">
+                {selectedServiceIds.length} servicio{selectedServiceIds.length !== 1 ? "s" : ""} seleccionado{selectedServiceIds.length !== 1 ? "s" : ""}
               </p>
             )}
           </div>

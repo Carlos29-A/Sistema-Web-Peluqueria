@@ -5,16 +5,13 @@ import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import { X, AlertCircle, Star } from "lucide-react"
+import type { StaffSelectItem } from "@/types"
 import {
   gallerySchema,
   type GalleryInput,
 } from "@/lib/validations/gallery"
 import ImageUpload from "@/app/admin/servicios/components/ImageUpload"
-
-interface Staff {
-  id: string
-  name: string
-}
+import { apiFetch } from "@/lib/api-client"
 
 interface GalleryFormProps {
   mode: "create" | "edit"
@@ -39,7 +36,7 @@ export default function GalleryForm({
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [imageUrl, setImageUrl] = useState<string | null>(initialData?.imageUrl ?? null)
-  const [staff, setStaff] = useState<Staff[]>([])
+  const [staff, setStaff] = useState<StaffSelectItem[]>([])
   const [loadingStaff, setLoadingStaff] = useState(true)
 
   const {
@@ -65,9 +62,8 @@ export default function GalleryForm({
   useEffect(() => {
     async function loadStaff() {
       try {
-        const res = await fetch("/api/staff?active=true")
-        const data = await res.json()
-        setStaff(data.staff ?? [])
+        const { data } = await apiFetch<StaffSelectItem[]>("/api/staff?active=true")
+        setStaff(data)
       } catch {
         toast.error("Error al cargar el staff")
       } finally {
@@ -101,17 +97,10 @@ export default function GalleryForm({
         isFeatured: data.isFeatured,
       }
 
-      const res = await fetch(url, {
+      await apiFetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.error || "Error al guardar")
-      }
-
       toast.success(
         mode === "create" ? "Imagen agregada a la galería" : "Imagen actualizada",
         { duration: 3000 }

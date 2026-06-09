@@ -1,48 +1,54 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
+import type { ServiceTableItem } from "@/types"
 import ServiceForm from "./ServiceForm"
-import { Plus, Pencil, Trash2, Loader2, Scissors } from "lucide-react"
+import Pagination from "@/components/admin/Pagination"
+import SearchInput from "@/components/admin/SearchInput"
+import { Plus, Pencil, Trash2, Loader2, Scissors, Power } from "lucide-react"
+import { ApiError, apiFetch, PaginationMeta } from "@/lib/api-client"
 
-interface Service {
-  id: string
-  name: string
-  description: string | null
-  price: number
-  duration: number
-  category: string | null
-  imageUrl: string | null
-  isActive: boolean
-}
+const LIMIT = 20
 
 export default function ServiceTable() {
-  const [services, setServices] = useState<Service[]>([])
+  const [services, setServices] = useState<ServiceTableItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState("")
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<"create" | "edit">("create")
-  const [editingService, setEditingService] = useState<Service | undefined>(undefined)
-  const [deletingService, setDeletingService] = useState<Service | null>(null)
+  const [editingService, setEditingService] = useState<ServiceTableItem | undefined>(undefined)
+  const [deletingService, setDeletingService] = useState<ServiceTableItem | null>(null)
   const [deletingAction, setDeletingAction] = useState(false)
-  const hasFetched = useRef(false)
 
-  async function loadServices() {
+  async function loadServices(p: number, s: string) {
     try {
-      const res = await fetch("/api/services")
-      const data = await res.json()
-      setServices(data.services ?? [])
-    } catch {
-      toast.error("Error al cargar los servicios")
+      const params = new URLSearchParams({ page: String(p), limit: String(LIMIT) })
+      if (s) params.set("search", s)
+      const { data: services, meta } = await apiFetch<ServiceTableItem[], PaginationMeta>(`/api/services?${params}`)
+      setServices(services)
+      setTotal(meta.total)
+      setTotalPages(meta.totalPages)
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Error al cargar los servicios")
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    if (hasFetched.current) return
-    hasFetched.current = true
-    loadServices()
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value)
+    setPage(1)
   }, [])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true)
+    loadServices(page, search)
+  }, [page, search])
 
   function handleCreate() {
     setFormMode("create")
@@ -50,7 +56,7 @@ export default function ServiceTable() {
     setFormOpen(true)
   }
 
-  function handleEdit(service: Service) {
+  function handleEdit(service: ServiceTableItem) {
     setFormMode("edit")
     setEditingService(service)
     setFormOpen(true)
@@ -64,10 +70,10 @@ export default function ServiceTable() {
   function handleSuccess() {
     setFormOpen(false)
     setEditingService(undefined)
-    loadServices()
+    loadServices(page, search)
   }
 
-  function openDeleteModal(service: Service) {
+  function openDeleteModal(service: ServiceTableItem) {
     setDeletingService(service)
   }
 
@@ -75,19 +81,36 @@ export default function ServiceTable() {
     if (!deletingService) return
     setDeletingAction(true)
     try {
-      const res = await fetch(`/api/services/${deletingService.id}`, { method: "DELETE" })
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.error || "Error al eliminar")
-      }
+      await apiFetch(`/api/services/${deletingService.id}`, { method: "DELETE" })
       toast.success("Servicio eliminado", { duration: 3000 })
-      loadServices()
+      loadServices(page, search)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error al eliminar"
-      toast.error(msg, { duration: 3000 })
+      toast.error(err instanceof ApiError ? err.message : "Error al eliminar el servicio")
     } finally {
       setDeletingAction(false)
       setDeletingService(null)
+    }
+  }
+
+  async function toggleActive(service: ServiceTableItem) {
+    const newState = !service.isActive
+    setServices((prev) =>
+      prev.map((s) => (s.id === service.id ? { ...s, isActive: newState } : s))
+    )
+    try {
+      await apiFetch(`/api/services/${service.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ isActive: newState }),
+      })
+      toast.success(
+        newState ? "Servicio activado" : "Servicio desactivado",
+        { duration: 2000 }
+      )
+    } catch {
+      setServices((prev) =>
+        prev.map((s) => (s.id === service.id ? { ...s, isActive: !newState } : s))
+      )
+      toast.error("Error al actualizar el estado")
     }
   }
 
@@ -102,35 +125,40 @@ export default function ServiceTable() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-gray-500">
-          {services.length} servicio{services.length !== 1 ? "s" : ""} registrado{services.length !== 1 ? "s" : ""}
-        </p>
+        <p className="text-sm text-gray-500">{total} servicio{total !== 1 ? "s" : ""}</p>
         <button
           onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-500 to-purple-600 rounded-lg hover:from-violet-600 hover:to-purple-700 transition shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-500 to-purple-500 rounded-lg hover:from-violet-600 hover:to-purple-600 transition shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Nuevo servicio
         </button>
       </div>
 
+      <div className="mb-4">
+        <SearchInput
+          placeholder="Buscar servicio por nombre, descripción o categoría..."
+          value={search}
+          onSearch={handleSearch}
+        />
+      </div>
+
       {services.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg bg-gradient-to-b from-violet-50/50 to-white">
-          <Scissors className="w-12 h-12 mx-auto mb-3 text-violet-300" />
-          <p className="text-gray-500 text-sm">No hay servicios registrados</p>
-          <p className="text-gray-400 text-xs mt-1">Crea el primer servicio de tu peluquería</p>
+        <div className="text-center py-12 text-gray-400 text-sm border border-dashed border-gray-300 rounded-lg">
+          <Scissors className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          No hay servicios registrados. Crea el primero.
         </div>
       ) : (
-        <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white shadow-sm">
+        <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-gray-600 text-xs bg-gradient-to-r from-violet-50 to-purple-50">
-                <th className="text-left px-4 py-3 font-semibold">Nombre</th>
-                <th className="text-left px-4 py-3 font-semibold">Categoría</th>
-                <th className="text-left px-4 py-3 font-semibold">Precio</th>
-                <th className="text-left px-4 py-3 font-semibold">Duración</th>
-                <th className="text-left px-4 py-3 font-semibold">Estado</th>
-                <th className="text-right px-4 py-3 font-semibold">Acciones</th>
+              <tr className="border-b border-gray-200 text-gray-500 text-xs bg-gray-50">
+                <th className="text-left px-4 py-3 font-medium">Nombre</th>
+                <th className="text-left px-4 py-3 font-medium">Categoría</th>
+                <th className="text-left px-4 py-3 font-medium">Precio</th>
+                <th className="text-left px-4 py-3 font-medium">Duración</th>
+                <th className="text-left px-4 py-3 font-medium">Estado</th>
+                <th className="text-right px-4 py-3 font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -139,28 +167,23 @@ export default function ServiceTable() {
                   <td className="px-4 py-3 font-medium text-gray-900">{service.name}</td>
                   <td className="px-4 py-3">
                     {service.category ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-violet-100 text-violet-700">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-50 text-violet-600">
                         {service.category}
                       </span>
                     ) : (
                       <span className="text-gray-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-semibold text-gray-900">
+                  <td className="px-4 py-3 font-medium">
                     ${Number(service.price).toLocaleString("es-CL")}
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 text-gray-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
-                      {service.duration} min
-                    </span>
-                  </td>
+                  <td className="px-4 py-3 text-gray-600">{service.duration} min</td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                         service.isActive
-                          ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                          : "bg-gray-100 text-gray-500 border border-gray-200"
+                          ? "bg-emerald-50 text-emerald-600"
+                          : "bg-gray-100 text-gray-500"
                       }`}
                     >
                       {service.isActive ? "Activo" : "Inactivo"}
@@ -169,8 +192,19 @@ export default function ServiceTable() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
+                        onClick={() => toggleActive(service)}
+                        className={`p-1.5 rounded-md transition ${
+                          service.isActive
+                            ? "hover:bg-amber-50 text-amber-500 hover:text-amber-600"
+                            : "hover:bg-gray-100 text-gray-300 hover:text-gray-500"
+                        }`}
+                        title={service.isActive ? "Desactivar" : "Activar"}
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         onClick={() => handleEdit(service)}
-                        className="p-1.5 hover:bg-violet-100 text-gray-500 hover:text-violet-600 rounded-md transition"
+                        className="p-1.5 hover:bg-gray-100 rounded-md transition"
                         title="Editar"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -190,6 +224,14 @@ export default function ServiceTable() {
           </table>
         </div>
       )}
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        limit={LIMIT}
+        onPageChange={setPage}
+      />
 
       {formOpen && (
         <ServiceForm
@@ -233,8 +275,7 @@ function DeleteConfirmationModal({
           </div>
           <h3 className="text-base font-bold text-gray-900">Eliminar servicio</h3>
           <p className="text-sm text-gray-500 mt-2">
-            ¿Estás seguro de que quieres eliminar{" "}
-            <span className="font-medium text-gray-700">&quot;{serviceName}&quot;</span>? Esta acción no se puede deshacer.
+            ¿Estás seguro de que quieres eliminar &quot;{serviceName}&quot;? Esta acción no se puede deshacer.
           </p>
         </div>
         <div className="flex gap-3 px-5 pb-5">

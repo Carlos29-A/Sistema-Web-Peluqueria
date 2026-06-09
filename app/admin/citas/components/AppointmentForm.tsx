@@ -1,26 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import { X, AlertCircle } from "lucide-react"
+import type { ServiceSelectItem, StaffSelectItem } from "@/types"
 import {
   appointmentSchema,
   type AppointmentInput,
 } from "@/lib/validations/appointment"
-
-interface Service {
-  id: string
-  name: string
-  price: number
-  duration: number
-}
-
-interface Staff {
-  id: string
-  name: string
-}
+import { ApiError, apiFetch } from "@/lib/api-client"
 
 interface AppointmentFormProps {
   mode: "create" | "edit"
@@ -53,8 +43,8 @@ export default function AppointmentForm({
 }: AppointmentFormProps) {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [services, setServices] = useState<Service[]>([])
-  const [staff, setStaff] = useState<Staff[]>([])
+  const [services, setServices] = useState<ServiceSelectItem[]>([])
+  const [staff, setStaff] = useState<StaffSelectItem[]>([])
   const [loadingData, setLoadingData] = useState(true)
 
   const isEdit = mode === "edit"
@@ -64,7 +54,7 @@ export default function AppointmentForm({
     handleSubmit,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: zodResolver(appointmentSchema) as any,
+    resolver: zodResolver(appointmentSchema) as Resolver<FormData>,
     defaultValues: isEdit
       ? {
           clientName: initialData?.clientName ?? "",
@@ -89,13 +79,11 @@ export default function AppointmentForm({
     async function loadData() {
       try {
         const [servicesRes, staffRes] = await Promise.all([
-          fetch("/api/services?active=true"),
-          fetch("/api/staff?active=true"),
+          apiFetch<ServiceSelectItem[]>("/api/services?active=true"),
+          apiFetch<StaffSelectItem[]>("/api/staff?active=true"),
         ])
-        const servicesData = await servicesRes.json()
-        const staffData = await staffRes.json()
-        setServices(servicesData.services ?? [])
-        setStaff(staffData.staff ?? [])
+        setServices(servicesRes.data)
+        setStaff(staffRes.data)
       } catch {
         toast.error("Error al cargar datos")
       } finally {
@@ -123,24 +111,18 @@ export default function AppointmentForm({
         totalPrice: data.totalPrice || null,
       }
 
-      const res = await fetch(url, {
+      await apiFetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.error || "Error al guardar")
-      }
 
       toast.success(
         mode === "create" ? "Cita creada correctamente" : "Cita actualizada",
         { duration: 3000 }
       )
       onSuccess()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error inesperado"
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Error inesperado"
       setSubmitError(msg)
       toast.error(msg, { duration: 3000 })
     } finally {
