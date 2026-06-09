@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { gallerySchema } from "@/lib/validations/gallery"
+import { error, paginated } from "@/lib/api-response"
+import { toGalleryTableItem } from "@/lib/dto/gallery.dto"
 
 const include = {
   staff: { select: { name: true } },
@@ -12,25 +14,37 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category")
     const featured = searchParams.get("featured")
     const staffId = searchParams.get("staffId")
+    const search = searchParams.get("search")
+    const page = Math.max(1, Number(searchParams.get("page")) || 1)
+    const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit")) || 20))
+    const skip = (page - 1) * limit
 
     const where: Record<string, unknown> = {}
     if (category) where.category = category
     if (featured === "true") where.isFeatured = true
     if (staffId) where.staffId = staffId
+    if (search) {
+      where.OR = [
+        { description: { contains: search, mode: "insensitive" } },
+        { category: { contains: search, mode: "insensitive" } },
+      ]
+    }
 
-    const gallery = await prisma.gallery.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include,
-    })
+    const [gallery, total] = await Promise.all([
+      prisma.gallery.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        include,
+      }),
+      prisma.gallery.count({ where }),
+    ])
 
-    return NextResponse.json({ gallery })
-  } catch (error) {
-    console.error("[GET /api/gallery]", error)
-    return NextResponse.json(
-      { error: "Error al obtener la galería" },
-      { status: 500 }
-    )
+    return paginated(gallery.map((g) => toGalleryTableItem(g)), { page, limit, total })
+  } catch (err) {
+    console.error("[GET /api/gallery]", err)
+    return error("Error al obtener la galería")
   }
 }
 // Crear nueva imagen en la galería
@@ -40,23 +54,16 @@ export async function POST(request: NextRequest) {
     const parsed = gallerySchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Datos inválidos", issues: parsed.error.issues.map((i) => i.message) },
-        { status: 400 }
-      )
+      return error("Datos inválidos", 400, parsed.error.issues.map((i) => i.message))
     }
-
     const gallery = await prisma.gallery.create({
       data: parsed.data,
       include,
     })
 
     return NextResponse.json({ gallery }, { status: 201 })
-  } catch (error) {
-    console.error("[POST /api/gallery]", error)
-    return NextResponse.json(
-      { error: "Error al crear la imagen de galería" },
-      { status: 500 }
-    )
+  } catch (err) {
+    console.error("[POST /api/gallery]", err)
+    return error("Error al crear la imagen de galería", 500)
   }
 }

@@ -14,6 +14,7 @@ export const appointmentSchema = z.object({
     .regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)"),
   notes: z.string().max(500).optional().nullable(),
   totalPrice: z.coerce.number().positive().optional().nullable(),
+  status: z.enum(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"]).optional(),
 })
 
 export const updateAppointmentSchema = z.object({

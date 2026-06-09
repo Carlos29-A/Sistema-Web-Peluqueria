@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { updateAppointmentSchema } from "@/lib/validations/appointment"
+import { success, error } from "@/lib/api-response"
+import { toAppointmentTableItem } from "@/lib/dto/appointment.dto"
 
-const include = {
+const includeRelations = {
   service: { select: { name: true, price: true, duration: true } },
   staff: { select: { name: true } },
 }
@@ -15,20 +17,17 @@ export async function GET(
     const { id } = await params
     const appointment = await prisma.appointment.findUnique({
       where: { id },
-      include,
+      include: includeRelations,
     })
 
     if (!appointment) {
-      return NextResponse.json({ error: "Cita no encontrada" }, { status: 404 })
+      return error("Cita no encontrada", 404)
     }
 
-    return NextResponse.json({ appointment })
-  } catch (error) {
-    console.error("[GET /api/appointments/:id]", error)
-    return NextResponse.json(
-      { error: "Error al obtener la cita" },
-      { status: 500 }
-    )
+    return success(toAppointmentTableItem(appointment))
+  } catch (err) {
+    console.error("[GET /api/appointments/:id]", err)
+    return error("Error al obtener la cita")
   }
 }
 
@@ -42,15 +41,12 @@ export async function PUT(
     const parsed = updateAppointmentSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Datos inválidos", issues: parsed.error.issues.map((i) => i.message) },
-        { status: 400 }
-      )
+      return error("Datos inválidos", 400, parsed.error.issues.map((i) => i.message))
     }
 
     const existing = await prisma.appointment.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: "Cita no encontrada" }, { status: 404 })
+      return error("Cita no encontrada", 404)
     }
 
     const { appointmentDate, ...rest } = parsed.data
@@ -61,16 +57,13 @@ export async function PUT(
         ...rest,
         ...(appointmentDate && { appointmentDate: new Date(appointmentDate) }),
       },
-      include,
+      include: includeRelations,
     })
 
-    return NextResponse.json({ appointment })
-  } catch (error) {
-    console.error("[PUT /api/appointments/:id]", error)
-    return NextResponse.json(
-      { error: "Error al actualizar la cita" },
-      { status: 500 }
-    )
+    return success(toAppointmentTableItem(appointment))
+  } catch (err) {
+    console.error("[PUT /api/appointments/:id]", err)
+    return error("Error al actualizar la cita")
   }
 }
 
@@ -83,17 +76,14 @@ export async function DELETE(
 
     const existing = await prisma.appointment.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: "Cita no encontrada" }, { status: 404 })
+      return error("Cita no encontrada", 404)
     }
 
     await prisma.appointment.delete({ where: { id } })
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("[DELETE /api/appointments/:id]", error)
-    return NextResponse.json(
-      { error: "Error al eliminar la cita" },
-      { status: 500 }
-    )
+    return success(null)
+  } catch (err) {
+    console.error("[DELETE /api/appointments/:id]", err)
+    return error("Error al eliminar la cita")
   }
 }

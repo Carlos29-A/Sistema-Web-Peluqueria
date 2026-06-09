@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { businessConfigSchema } from "@/lib/validations/business-config"
+import { businessConfigFormSchema } from "@/lib/validations/business-config"
+import { success, error } from "@/lib/api-response"
 
-// funcion que devuelve la configuración de la aplicación
+// función que devuelve la configuración de la aplicación
 export async function GET() {
   try {
     const entries = await prisma.businessConfig.findMany()
@@ -11,14 +12,10 @@ export async function GET() {
     for (const entry of entries) {
       config[entry.key] = entry.value
     }
-
-    return NextResponse.json({ config })
-  } catch (error) {
-    console.error("[GET /api/business-config]", error)
-    return NextResponse.json(
-      { error: "Error al obtener la configuración" },
-      { status: 500 }
-    )
+    return success(config)
+  } catch (err) {
+    console.error("[GET /api/business-config]", err)
+    return error("Error al obtener la configuración")
   }
 }
 
@@ -26,13 +23,10 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const parsed = businessConfigSchema.safeParse(body)
+    const parsed = businessConfigFormSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Datos inválidos", issues: parsed.error.issues.map((i) => i.message) },
-        { status: 400 }
-      )
+      return error("Datos inválidos", 400, parsed.error.issues.map((i) => i.message))
     }
 
     const entries = Object.entries(parsed.data)
@@ -51,12 +45,9 @@ export async function PUT(request: NextRequest) {
       config[entry.key] = entry.value
     }
 
-    return NextResponse.json({ config })
-  } catch (error) {
-    console.error("[PUT /api/business-config]", error)
-    return NextResponse.json(
-      { error: "Error al actualizar la configuración" },
-      { status: 500 }
-    )
+    return success(config)
+  } catch (err) {
+    console.error("[PUT /api/business-config]", err)
+    return error("Error al actualizar la configuración")
   }
 }

@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { serviceSchema } from "@/lib/validations/service"
+import { updateServiceSchema } from "@/lib/validations/service"
+import { success, error } from "@/lib/api-response"
+import { toServiceTableItem } from "@/lib/dto/service.dto"
 
 // GET /api/services/[id] - Obtener un servicio por ID
 export async function GET(
@@ -14,19 +16,13 @@ export async function GET(
     })
 
     if (!service) {
-      return NextResponse.json(
-        { error: "Servicio no encontrado" },
-        { status: 404 }
-      )
+      return error("Servicio no encontrado", 404)
     }
 
-    return NextResponse.json({ service })
-  } catch (error) {
-    console.error("[GET /api/services/:id]", error)
-    return NextResponse.json(
-      { error: "Error al obtener el servicio" },
-      { status: 500 }
-    )
+    return success(toServiceTableItem(service))
+  } catch (err) {
+    console.error("[GET /api/services/:id]", err)
+    return error("Error al obtener el servicio")
   }
 }
 
@@ -38,16 +34,10 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const parsed = serviceSchema.safeParse(body)
+    const parsed = updateServiceSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          error: "Datos inválidos",
-          issues: parsed.error.issues.map((i) => i.message),
-        },
-        { status: 400 }
-      )
+      return error("Datos inválidos", 400, parsed.error.issues.map((i) => i.message))
     }
 
     const existing = await prisma.service.findUnique({
@@ -55,32 +45,26 @@ export async function PUT(
     })
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "Servicio no encontrado" },
-        { status: 404 }
-      )
+      return error("Servicio no encontrado", 404)
     }
 
     const service = await prisma.service.update({
       where: { id },
       data: {
-        name: parsed.data.name,
-        description: parsed.data.description,
-        price: parsed.data.price,
-        duration: parsed.data.duration,
-        category: parsed.data.category,
-        imageUrl: parsed.data.imageUrl,
-        isActive: parsed.data.isActive,
+        ...(parsed.data.name !== undefined && { name: parsed.data.name }),
+        ...(parsed.data.description !== undefined && { description: parsed.data.description }),
+        ...(parsed.data.price !== undefined && { price: parsed.data.price }),
+        ...(parsed.data.duration !== undefined && { duration: parsed.data.duration }),
+        ...(parsed.data.category !== undefined && { category: parsed.data.category }),
+        ...(parsed.data.imageUrl !== undefined && { imageUrl: parsed.data.imageUrl }),
+        ...(parsed.data.isActive !== undefined && { isActive: parsed.data.isActive }),
       },
     })
 
-    return NextResponse.json({ service })
-  } catch (error) {
-    console.error("[PUT /api/services/:id]", error)
-    return NextResponse.json(
-      { error: "Error al actualizar el servicio" },
-      { status: 500 }
-    )
+    return success(toServiceTableItem(service))
+  } catch (err) {
+    console.error("[PUT /api/services/:id]", err)
+    return error("Error al actualizar el servicio")
   }
 }
 
@@ -97,22 +81,16 @@ export async function DELETE(
     })
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "Servicio no encontrado" },
-        { status: 404 }
-      )
+      return error("Servicio no encontrado", 404)
     }
 
     await prisma.service.delete({
       where: { id },
     })
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("[DELETE /api/services/:id]", error)
-    return NextResponse.json(
-      { error: "Error al eliminar el servicio" },
-      { status: 500 }
-    )
+    return success(null)
+  } catch (err) {
+    console.error("[DELETE /api/services/:id]", err)
+    return error("Error al eliminar el servicio")
   }
 }

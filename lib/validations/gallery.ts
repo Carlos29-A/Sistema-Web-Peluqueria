@@ -9,6 +9,7 @@ export const gallerySchema = z.object({
 })
 
 export const updateGallerySchema = z.object({
+  imageUrl: z.string().url().optional(),
   description: z.string().max(500).optional().nullable(),
   category: z.string().max(50).optional().nullable(),
   staffId: z.string().cuid().optional().nullable(),

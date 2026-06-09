@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { updateStaffSchema } from "@/lib/validations/staff"
+import { success, error } from "@/lib/api-response"
+import { toStaffTableItem } from "@/lib/dto/staff.dto"
 
 export async function GET(
   request: NextRequest,
@@ -21,16 +23,13 @@ export async function GET(
     })
 
     if (!staff) {
-      return NextResponse.json({ error: "Miembro del staff no encontrado" }, { status: 404 })
+      return error("Miembro del staff no encontrado", 404)
     }
 
-    return NextResponse.json({ staff })
-  } catch (error) {
-    console.error("[GET /api/staff/:id]", error)
-    return NextResponse.json(
-      { error: "Error al obtener el miembro del staff" },
-      { status: 500 }
-    )
+    return success(toStaffTableItem(staff))
+  } catch (err) {
+    console.error("[GET /api/staff/:id]", err)
+    return error("Error al obtener el miembro del staff")
   }
 }
 
@@ -44,15 +43,12 @@ export async function PUT(
     const parsed = updateStaffSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Datos inválidos", issues: parsed.error.issues.map((i) => i.message) },
-        { status: 400 }
-      )
+      return error("Datos inválidos", 400, parsed.error.issues.map((i) => i.message))
     }
 
     const existing = await prisma.staff.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: "Miembro del staff no encontrado" }, { status: 404 })
+      return error("Miembro del staff no encontrado", 404)
     }
 
     const staff = await prisma.staff.update({
@@ -60,13 +56,10 @@ export async function PUT(
       data: parsed.data,
     })
 
-    return NextResponse.json({ staff })
-  } catch (error) {
-    console.error("[PUT /api/staff/:id]", error)
-    return NextResponse.json(
-      { error: "Error al actualizar el miembro del staff" },
-      { status: 500 }
-    )
+    return success(toStaffTableItem(staff))
+  } catch (err) {
+    console.error("[PUT /api/staff/:id]", err)
+    return error("Error al actualizar el miembro del staff")
   }
 }
 
@@ -79,17 +72,14 @@ export async function DELETE(
 
     const existing = await prisma.staff.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: "Miembro del staff no encontrado" }, { status: 404 })
+      return error("Miembro del staff no encontrado", 404)
     }
 
     await prisma.staff.delete({ where: { id } })
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("[DELETE /api/staff/:id]", error)
-    return NextResponse.json(
-      { error: "Error al eliminar el miembro del staff" },
-      { status: 500 }
-    )
+    return success(null)
+  } catch (err) {
+    console.error("[DELETE /api/staff/:id]", err)
+    return error("Error al eliminar el miembro del staff")
   }
 }
