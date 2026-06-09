@@ -1,18 +1,10 @@
+import type { LandingStaff } from "@/types"
 import Container from "../ui/Container"
 import SectionHeader from "../ui/SectionHeader"
 import StaffCard from "../cards/StaffCard"
 
-interface Staff {
-  id: string
-  name: string
-  role: string
-  bio: string | null
-  photoUrl: string | null
-  instagram: string | null
-}
-
 interface StaffSectionProps {
-  staff: Staff[]
+  staff: LandingStaff[]
 }
 
 export default function StaffSection({ staff }: StaffSectionProps) {

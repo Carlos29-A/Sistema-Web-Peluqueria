@@ -3,24 +3,16 @@
 import { useState } from "react"
 import Image from "next/image"
 import { X, Star } from "lucide-react"
+import type { PublicGalleryItem } from "@/types"
 import Container from "../ui/Container"
 import SectionHeader from "../ui/SectionHeader"
 
-interface GalleryItem {
-  id: string
-  imageUrl: string
-  description: string | null
-  category: string | null
-  isFeatured: boolean
-  staff: { name: string } | null
-}
-
 interface GallerySectionProps {
-  items: GalleryItem[]
+  items: PublicGalleryItem[]
 }
 
 export default function GallerySection({ items }: GallerySectionProps) {
-  const [selected, setSelected] = useState<GalleryItem | null>(null)
+  const [selected, setSelected] = useState<PublicGalleryItem | null>(null)
 
   if (items.length === 0) return null
 

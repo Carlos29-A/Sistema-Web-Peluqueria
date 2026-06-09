@@ -4,16 +4,12 @@ import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Clock, ArrowRight } from "lucide-react"
+import type { CatalogService } from "@/types"
 import { SERVICE_CATEGORIES } from "@/lib/constants/landing"
+import { getCurrencySymbol } from "@/lib/validations/business-config"
 
-export interface ServiceCatalogCardProps {
-  id: string
-  name: string
-  description: string | null
-  price: number
-  duration: number
-  category: string | null
-  imageUrl: string | null
+export interface ServiceCatalogCardProps extends CatalogService {
+  currency?: string
 }
 
 export default function ServiceCatalogCard({
@@ -24,6 +20,7 @@ export default function ServiceCatalogCard({
   duration,
   category,
   imageUrl,
+  currency = "USD",
 }: ServiceCatalogCardProps) {
   const Icon =
     (category && SERVICE_CATEGORIES[category]) || SERVICE_CATEGORIES.default
@@ -85,7 +82,7 @@ export default function ServiceCatalogCard({
             <div>
               <p className="text-xs text-gray-500 mb-0.5">Desde</p>
               <p className="text-2xl font-extrabold text-amber-600">
-                ${price.toLocaleString("es-CL")}
+                {getCurrencySymbol(currency)} {price.toLocaleString("es-CL")}
               </p>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50 text-sm text-gray-600">

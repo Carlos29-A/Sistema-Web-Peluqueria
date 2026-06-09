@@ -51,7 +51,7 @@ export default async function HomePage() {
         instagram={config.instagram ?? ""}
         facebook={config.facebook ?? ""}
       />
-      <ServicesSection services={services} />
+      <ServicesSection services={services} currency={config.currency ?? "USD"} />
       <AboutSection />
       <StaffSection staff={staff} />
       <GallerySection items={gallery} />

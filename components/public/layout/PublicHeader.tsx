@@ -13,7 +13,7 @@ const navLinks = [
   { href: "/#testimonios", label: "Reseñas" },
 ]
 
-export default function PublicHeader() {
+export default function PublicHeader({ businessName = "GlamStudio" }: { businessName?: string }) {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
@@ -44,7 +44,8 @@ export default function PublicHeader() {
             href="/"
             className={`text-xl font-bold tracking-tight transition-colors ${textColor}`}
           >
-            Glam<span className="text-amber-500">Studio</span>
+            {businessName.split(" ")[0]}
+            <span className="text-amber-500">Studio</span>
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">

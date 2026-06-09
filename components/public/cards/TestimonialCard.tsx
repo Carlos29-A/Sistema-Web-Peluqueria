@@ -1,5 +1,5 @@
 import { Star } from "lucide-react"
-import type { Testimonial } from "@/lib/constants/landing"
+import type { Testimonial } from "@/types"
 
 export default function TestimonialCard({ name, role, content, rating }: Testimonial) {
   return (

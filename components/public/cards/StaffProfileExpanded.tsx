@@ -12,7 +12,7 @@ import {
   Scissors,
   UserCircle,
 } from "lucide-react"
-import type { CatalogStaff } from "@/app/(public)/equipo/page"
+import type { CatalogStaff } from "@/types"
 
 interface StaffProfileExpandedProps {
   staff: CatalogStaff

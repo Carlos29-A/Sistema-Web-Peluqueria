@@ -1,5 +1,6 @@
 import { Clock, Star } from "lucide-react"
 import { SERVICE_CATEGORIES } from "@/lib/constants/landing"
+import { getCurrencySymbol } from "@/lib/validations/business-config"
 
 interface ServiceCardProps {
   name: string
@@ -7,9 +8,10 @@ interface ServiceCardProps {
   price: number
   duration: number
   category: string | null
+  currency?: string
 }
 
-export default function ServiceCard({ name, description, price, duration, category }: ServiceCardProps) {
+export default function ServiceCard({ name, description, price, duration, category, currency = "USD" }: ServiceCardProps) {
   const Icon = (category && SERVICE_CATEGORIES[category]) || SERVICE_CATEGORIES.default
 
   return (
@@ -36,7 +38,7 @@ export default function ServiceCard({ name, description, price, duration, catego
         <div>
           <p className="text-xs text-gray-500 mb-0.5">Desde</p>
           <p className="text-2xl font-bold text-gray-900">
-            ${Number(price).toLocaleString("es-CL")}
+            {getCurrencySymbol(currency)} {Number(price).toLocaleString("es-CL")}
           </p>
         </div>
         <div className="flex items-center gap-1 text-xs text-gray-500">

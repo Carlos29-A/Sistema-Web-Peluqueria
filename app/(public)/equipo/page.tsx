@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import type { CatalogStaff } from "@/types"
 import { prisma } from "@/lib/prisma"
 import StaffCatalog from "@/components/public/sections/StaffCatalog"
 
@@ -6,30 +7,6 @@ export const metadata: Metadata = {
   title: "Equipo - GlamStudio",
   description:
     "Conoce a nuestro equipo de estilistas profesionales. Descubre sus especialidades, mira su galería de trabajos y reserva tu cita con tu estilista favorita.",
-}
-
-export interface StaffService {
-  id: string
-  name: string
-  category: string | null
-}
-
-export interface GalleryItem {
-  id: string
-  imageUrl: string
-  description: string | null
-  category: string | null
-}
-
-export interface CatalogStaff {
-  id: string
-  name: string
-  role: string
-  bio: string | null
-  photoUrl: string | null
-  instagram: string | null
-  services: StaffService[]
-  gallery: GalleryItem[]
 }
 
 async function getStaff(): Promise<CatalogStaff[]> {

@@ -6,13 +6,14 @@ import { Filter, Sparkles } from "lucide-react"
 import Container from "@/components/public/ui/Container"
 import SectionHeader from "@/components/public/ui/SectionHeader"
 import ServiceCatalogCard from "@/components/public/cards/ServiceCatalogCard"
-import type { CatalogService } from "@/app/(public)/servicios/page"
+import type { CatalogService } from "@/types"
 
 interface ServicesCatalogProps {
   services: CatalogService[]
+  currency?: string
 }
 
-export default function ServicesCatalog({ services }: ServicesCatalogProps) {
+export default function ServicesCatalog({ services, currency = "USD" }: ServicesCatalogProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   const categories = useMemo(() => {
@@ -86,7 +87,7 @@ export default function ServicesCatalog({ services }: ServicesCatalogProps) {
             <AnimatePresence mode="popLayout" initial={false}>
               {filteredServices.length > 0 ? (
                 filteredServices.map((service) => (
-                  <ServiceCatalogCard key={service.id} {...service} />
+                  <ServiceCatalogCard key={service.id} {...service} currency={currency} />
                 ))
               ) : (
                 <motion.div

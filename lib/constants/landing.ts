@@ -1,5 +1,6 @@
 import { Scissors, Palette, Sparkles, Hand, Heart, Star } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import type { Testimonial } from "@/types"
 
 export const SERVICE_CATEGORIES: Record<string, LucideIcon> = {
   Corte: Scissors,
@@ -16,14 +17,6 @@ export const HERO_IMAGE =
 
 export const ABOUT_IMAGE =
   "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1200&q=80"
-
-export interface Testimonial {
-  id: number
-  name: string
-  role: string
-  content: string
-  rating: number
-}
 
 export const TESTIMONIALS: Testimonial[] = [
   {

@@ -21,7 +21,7 @@ export default async function PublicLayout({
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <PublicHeader />
+      <PublicHeader businessName={config.business_name ?? "GlamStudio"} />
       <main className="flex-1">{children}</main>
       <PublicFooter config={config} />
       <WhatsAppButton phone={config.whatsapp ?? ""} businessName={config.business_name} />

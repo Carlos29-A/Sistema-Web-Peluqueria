@@ -7,7 +7,7 @@ import Container from "@/components/public/ui/Container"
 import SectionHeader from "@/components/public/ui/SectionHeader"
 import StaffCatalogCard from "@/components/public/cards/StaffCatalogCard"
 import StaffProfileExpanded from "@/components/public/cards/StaffProfileExpanded"
-import type { CatalogStaff } from "@/app/(public)/equipo/page"
+import type { CatalogStaff } from "@/types"
 
 interface StaffCatalogProps {
   staff: CatalogStaff[]

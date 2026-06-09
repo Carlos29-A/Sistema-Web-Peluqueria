@@ -1,23 +1,16 @@
 import Link from "next/link"
 import { Calendar } from "lucide-react"
+import type { LandingService } from "@/types"
 import Container from "../ui/Container"
 import SectionHeader from "../ui/SectionHeader"
 import ServiceCard from "../cards/ServiceCard"
 
-interface Service {
-  id: string
-  name: string
-  description: string | null
-  price: number
-  duration: number
-  category: string | null
-}
-
 interface ServicesSectionProps {
-  services: Service[]
+  services: LandingService[]
+  currency?: string
 }
 
-export default function ServicesSection({ services }: ServicesSectionProps) {
+export default function ServicesSection({ services, currency = "USD" }: ServicesSectionProps) {
   if (services.length === 0) return null
 
   return (
@@ -31,7 +24,7 @@ export default function ServicesSection({ services }: ServicesSectionProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {services.slice(0, 6).map((service) => (
-            <ServiceCard key={service.id} {...service} />
+            <ServiceCard key={service.id} {...service} currency={currency} />
           ))}
         </div>
 
