@@ -52,6 +52,7 @@ async function main() {
   // ── Configuración del negocio ────────────────────
   const config = [
     { key: "business_name",   value: "Peluquería Bella" },
+    { key: "currency",        value: "USD" },
     { key: "phone",           value: "+51 999 888 777" },
     { key: "whatsapp",        value: "+51999888777" },
     { key: "address",         value: "Av. Principal 123, Lima" },
