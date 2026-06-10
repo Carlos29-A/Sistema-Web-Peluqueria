@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { updateGallerySchema } from "@/lib/validations/gallery"
 import { error, success } from "@/lib/api-response"
+import { requireSession } from "@/lib/auth-guard"
 
 const include = {
   staff: { select: { name: true } },
@@ -36,6 +37,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await requireSession();
+    if (!session) {
+      return error("No autorizado", 401)
+    }
     const { id } = await params
     const body = await request.json()
     const parsed = updateGallerySchema.safeParse(body)
@@ -67,6 +72,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await requireSession();
+    if (!session) {
+      return error("No autorizado", 401)
+    }
     const { id } = await params
 
     const existing = await prisma.gallery.findUnique({ where: { id } })

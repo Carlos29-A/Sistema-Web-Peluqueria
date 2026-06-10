@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { businessConfigFormSchema } from "@/lib/validations/business-config"
 import { success, error } from "@/lib/api-response"
+import { requireSession } from "@/lib/auth-guard"
 
 // función que devuelve la configuración de la aplicación
 export async function GET() {
@@ -22,6 +23,10 @@ export async function GET() {
 // funcion que actualiza la configuración de la aplicación
 export async function PUT(request: NextRequest) {
   try {
+    const session = await requireSession();
+    if (!session) {
+      return error("No autorizado", 401)
+    }
     const body = await request.json()
     const parsed = businessConfigFormSchema.safeParse(body)
 

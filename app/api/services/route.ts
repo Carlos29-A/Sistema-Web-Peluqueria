@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { serviceSchema } from "@/lib/validations/service"
 import { paginated, error, success } from "@/lib/api-response"
 import { toServiceTableItem } from "@/lib/dto/service.dto"
+import { requireSession } from "@/lib/auth-guard"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 // GET /api/services - Listar todos los servicios
 export async function GET(request: NextRequest) {
@@ -44,6 +46,17 @@ export async function GET(request: NextRequest) {
 // POST /api/services - Crear un nuevo servicio
 export async function POST(request: NextRequest) {
   try {
+    const session = await requireSession();
+    if (!session) {
+      return error("No autorizado", 401)
+    }
+
+    const ip = getClientIp(request)
+    const { allowed } = rateLimit(`services:${ip}`, 10, 60_000)
+    if (!allowed) {
+      return error("Demasiadas solicitudes. Intentá de nuevo en un minuto.", 429)
+    }
+
     const body = await request.json()
     const parsed = serviceSchema.safeParse(body)
 

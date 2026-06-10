@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { staffSchema } from "@/lib/validations/staff"
 import { error, paginated, success } from "@/lib/api-response"
 import { toStaffTableItem } from "@/lib/dto/staff.dto"
+import { requireSession } from "@/lib/auth-guard"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,6 +52,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+
+    const session = await requireSession();
+    if (!session) {
+      return error("No autorizado", 401)
+    }
+
+    const ip = getClientIp(request)
+    const { allowed } = rateLimit(`staff:${ip}`, 10, 60_000)
+    if (!allowed) {
+      return error("Demasiadas solicitudes. Intentá de nuevo en un minuto.", 429)
+    }
+
     const body = await request.json()
     const parsed = staffSchema.safeParse(body)
 

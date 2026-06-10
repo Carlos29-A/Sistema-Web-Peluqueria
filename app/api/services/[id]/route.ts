@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { updateServiceSchema } from "@/lib/validations/service"
 import { success, error } from "@/lib/api-response"
 import { toServiceTableItem } from "@/lib/dto/service.dto"
+import { requireSession } from "@/lib/auth-guard"
 
 // GET /api/services/[id] - Obtener un servicio por ID
 export async function GET(
@@ -32,6 +33,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await requireSession();
+    if (!session) {
+      return error("No autorizado", 401)
+    }
+
     const { id } = await params
     const body = await request.json()
     const parsed = updateServiceSchema.safeParse(body)
@@ -74,6 +80,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await requireSession()
+    if (!session) {
+      return error("No autorizado", 401)
+    }
+
     const { id } = await params
 
     const existing = await prisma.service.findUnique({

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { updateStaffSchema } from "@/lib/validations/staff"
 import { success, error } from "@/lib/api-response"
 import { toStaffTableItem } from "@/lib/dto/staff.dto"
+import { requireSession } from "@/lib/auth-guard"
 
 export async function GET(
   request: NextRequest,
@@ -38,7 +39,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await requireSession();
+    if (!session) {
+      return error("No autorizado", 401)
+    }
     const { id } = await params
+
     const body = await request.json()
     const parsed = updateStaffSchema.safeParse(body)
 
@@ -68,6 +74,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await requireSession();
+    if (!session) {
+      return error("No autorizado", 401)
+    }
     const { id } = await params
 
     const existing = await prisma.staff.findUnique({ where: { id } })

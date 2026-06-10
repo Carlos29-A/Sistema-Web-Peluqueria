@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { success, error } from "@/lib/api-response"
+import { requireSession } from "@/lib/auth-guard"
 
 const staffServicesSchema = z.object({
   serviceIds: z.array(z.string().cuid()),
@@ -12,6 +13,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await requireSession();
+    if (!session) {
+      return error("No autorizado", 401)
+    }
     const { id } = await params
     const body = await request.json()
     const parsed = staffServicesSchema.safeParse(body)

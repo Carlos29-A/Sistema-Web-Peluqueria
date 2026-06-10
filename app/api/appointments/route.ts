@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { appointmentSchema } from "@/lib/validations/appointment"
 import { success, paginated, error } from "@/lib/api-response"
 import { toAppointmentTableItem } from "@/lib/dto/appointment.dto"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 const includeRelations = {
   service: { select: { name: true, price: true, duration: true } },
@@ -51,6 +52,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request)
+    const { allowed } = rateLimit(`appointments:${ip}`, 5, 60_000)
+    if (!allowed) {
+      return error("Demasiadas solicitudes. Intentá de nuevo en un minuto.", 429)
+    }
+
     const body = await request.json()
     const parsed = appointmentSchema.safeParse(body)
 

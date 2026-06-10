@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { success, error } from "@/lib/api-response"
+import { requireSession } from "@/lib/auth-guard"
 
 const scheduleBlockSchema = z.object({
   dayOfWeek: z.number().min(0).max(6),
@@ -47,6 +48,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await requireSession();
+    if (!session) {
+      return error("No autorizado", 401)
+    }
     const { id } = await params
     const body = await request.json()
     const parsed = updateScheduleSchema.safeParse(body)

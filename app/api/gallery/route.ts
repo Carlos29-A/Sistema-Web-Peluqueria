@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { gallerySchema } from "@/lib/validations/gallery"
 import { error, paginated } from "@/lib/api-response"
 import { toGalleryTableItem } from "@/lib/dto/gallery.dto"
+import { requireSession } from "@/lib/auth-guard"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 const include = {
   staff: { select: { name: true } },
@@ -50,6 +52,17 @@ export async function GET(request: NextRequest) {
 // Crear nueva imagen en la galería
 export async function POST(request: NextRequest) {
   try {
+    const session = await requireSession();
+    if (!session) {
+      return error("No autorizado", 401)
+    }
+
+    const ip = getClientIp(request)
+    const { allowed } = rateLimit(`gallery:${ip}`, 10, 60_000)
+    if (!allowed) {
+      return error("Demasiadas solicitudes. Intentá de nuevo en un minuto.", 429)
+    }
+
     const body = await request.json()
     const parsed = gallerySchema.safeParse(body)
 
