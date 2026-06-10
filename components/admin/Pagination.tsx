@@ -82,9 +82,9 @@ export default function Pagination({
               <button
                 key={p}
                 onClick={() => onPageChange(p)}
-                className={`min-w-[32px] h-8 rounded-lg text-xs font-medium transition-all ${
+                className={`min-w-8 h-8 rounded-lg text-xs font-medium transition-all ${
                   p === page
-                    ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-sm shadow-amber-200"
+                    ? "bg-linear-to-br from-amber-500 to-orange-500 text-white shadow-sm shadow-amber-200"
                     : "text-gray-600 hover:bg-gray-100 border border-transparent hover:border-gray-200"
                 }`}
               >

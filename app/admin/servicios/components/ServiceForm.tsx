@@ -187,7 +187,7 @@ export default function ServiceForm({
               value={imageUrl}
               onChange={(url) => {
                 setImageUrl(url)
-                setValue("imageUrl", url)
+                setValue("imageUrl", url ?? "")
               }}
             />
             {errors.imageUrl && (

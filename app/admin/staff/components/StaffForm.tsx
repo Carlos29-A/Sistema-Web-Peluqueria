@@ -213,7 +213,7 @@ export default function StaffForm({
               value={photoUrl}
               onChange={(url) => {
                 setPhotoUrl(url)
-                setValue("photoUrl", url)
+                setValue("photoUrl", url ?? "")
               }}
             />
           </div>

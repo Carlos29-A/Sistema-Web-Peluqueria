@@ -1,8 +1,8 @@
-import type { Appointment, Service, Staff } from "@/app/generated/prisma/client"
+import type { Appointment } from "@/app/generated/prisma/client"
 import type { AppointmentTableItem } from "@/types"
 
 type AppointmentWithRelations = Appointment & {
-  service: { name: string; price: number; duration: number }
+  service: { name: string; price: unknown; duration: number }
   staff: { name: string } | null
 }
 
