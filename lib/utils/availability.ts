@@ -50,7 +50,7 @@ export function getCalendarDays(year: number, month: number): (number | null)[] 
   }
   return days
 }
-
+// busca el horario correspondiente a un día específico dentro de una lista de horarios.
 export function getScheduleForDay(schedules: ScheduleSlot[], dateStr: string): ScheduleSlot | null {
   const dayOfWeek = getDayOfWeek(dateStr)
   return schedules.find((s) => s.dayOfWeek === dayOfWeek) ?? null

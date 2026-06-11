@@ -4,6 +4,7 @@ import { appointmentSchema } from "@/lib/validations/appointment"
 import { success, paginated, error } from "@/lib/api-response"
 import { toAppointmentTableItem } from "@/lib/dto/appointment.dto"
 import { rateLimit, getClientIp } from "@/lib/rate-limit"
+import { isDateInPast, getScheduleForDay, timeToMinutes } from "@/lib/utils/availability"
 
 const includeRelations = {
   service: { select: { name: true, price: true, duration: true } },
@@ -64,8 +65,83 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return error("Datos inválidos", 400, parsed.error.issues.map((i) => i.message))
     }
-
     const { appointmentDate, ...rest } = parsed.data
+
+    // Validación: No permitir fechas pasadas
+    if (isDateInPast(appointmentDate)) {
+      return error("La fecha de la cita no puede ser en el pasado", 400)
+    }
+
+    //validación: horario laboral del staff
+  
+    if(parsed.data.staffId){
+      const schedules = await prisma.schedule.findMany({
+        where : {
+          staffId: parsed.data.staffId
+        }
+      })
+      const schedule = getScheduleForDay(schedules, appointmentDate)
+
+      if(!schedule){
+        return error("El estilista no trabaja en la fecha seleccionada", 400)
+      }
+
+      const citaMinutos = timeToMinutes(parsed.data.appointmentTime)
+      const inicioMinutos = timeToMinutes(schedule.startTime)
+      const finMinutos = timeToMinutes(schedule.endTime)
+
+      if(citaMinutos < inicioMinutos || citaMinutos >= finMinutos){
+        return error("La hora seleccionada está fuera del horario laboral del estilista", 400)
+      }
+      // Validación: el staff ofrece este servicio
+      const staffService = await prisma.staffService.findUnique({
+        where: {
+          staffId_serviceId: {
+            staffId: parsed.data.staffId,
+            serviceId: parsed.data.serviceId,
+          }
+        }
+      })
+      if(!staffService){
+        return error("El estilista no ofrece este servicio", 400)
+      }
+      // Validación: sin solapamiento con otras citas del mismo staff
+      const servicio = await prisma.service.findUnique({
+        where: { id: parsed.data.serviceId},
+        select: { duration: true}
+      })
+      if (!servicio){
+        return error("El servicio seleccionado no existe", 400)
+      }
+      const citasExistentes = await prisma.appointment.findMany({
+        where: {
+          staffId: parsed.data.staffId,
+          appointmentDate: new Date(appointmentDate),
+          status: { not: "CANCELLED"}
+        },
+        select: {
+          appointmentTime: true,
+          service: {
+            select: {
+              duration: true
+            }
+          }
+        }
+      })
+      const nuevaInicio = timeToMinutes(parsed.data.appointmentTime)
+      const nuevaFin = nuevaInicio + servicio.duration
+
+      const haySolapamiento = citasExistentes.some((cita) => {
+        const citaInicio = timeToMinutes(cita.appointmentTime)
+        const citaFin = citaInicio + cita.service.duration
+        return nuevaInicio < citaFin && nuevaFin > citaInicio
+      })
+
+      if (haySolapamiento) {
+        return error("Ya existe una cita en ese horario con el mismo estilista", 409)
+      }
+    }
+
 
     const appointment = await prisma.appointment.create({
       data: {
