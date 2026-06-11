@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { prisma } from "@/lib/prisma"
 import HeroSection from "@/components/public/sections/HeroSection"
 import ServicesSection from "@/components/public/sections/ServicesSection"
@@ -5,6 +6,17 @@ import AboutSection from "@/components/public/sections/AboutSection"
 import StaffSection from "@/components/public/sections/StaffSection"
 import GallerySection from "@/components/public/sections/GallerySection"
 import TestimonialsSection from "@/components/public/sections/TestimonialsSection"
+
+export const metadata: Metadata = {
+  title: "Inicio",
+  description:
+    "Bienvenido a GlamStudio. Cortes modernos, coloración profesional, tratamientos capilares y más. Reserva tu cita online y transforma tu look.",
+  openGraph: {
+    title: "GlamStudio - Peluquería & Estilismo Profesional",
+    description:
+      "Bienvenido a GlamStudio. Cortes modernos, coloración profesional, tratamientos capilares y más.",
+  },
+}
 
 async function getLandingData() {
   const [services, staff, gallery, configEntries] = await Promise.all([

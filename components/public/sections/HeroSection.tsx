@@ -1,11 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { Calendar, Sparkles } from "lucide-react"
+import { Calendar, Sparkles, ImageIcon } from "lucide-react"
 import { InstagramIcon, FacebookIcon } from "../icons/SocialIcons"
-import { HERO_IMAGE } from "@/lib/constants/landing"
+import { HERO_IMAGE, FALLBACK_GRADIENT } from "@/lib/constants/landing"
 
 interface HeroSectionProps {
   businessName: string
@@ -14,21 +15,29 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ businessName, instagram, facebook }: HeroSectionProps) {
+  const [heroError, setHeroError] = useState(false)
   const brandName = businessName.split(" ")[0] || "Glam"
   const lastName = businessName.split(" ")[1] || "Studio"
   const instagramUrl = instagram ? `https://instagram.com/${instagram.replace("@", "")}` : "#"
   const facebookUrl = facebook ? `https://facebook.com/${facebook}` : "#"
 
   return (
-    <section className="relative h-[100svh] min-h-[600px] w-full overflow-hidden">
-      <Image
-        src={HERO_IMAGE}
-        alt="GlamStudio - Peluquería profesional"
-        fill
-        priority
-        sizes="100vw"
-        className="object-cover"
-      />
+    <section className={`relative h-[100svh] min-h-[600px] w-full overflow-hidden ${heroError ? FALLBACK_GRADIENT : ""}`}>
+      {heroError ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <ImageIcon className="w-24 h-24 text-amber-300/50" />
+        </div>
+      ) : (
+        <Image
+          src={HERO_IMAGE}
+          alt="GlamStudio - Peluquería profesional"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+          onError={() => setHeroError(true)}
+        />
+      )}
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 

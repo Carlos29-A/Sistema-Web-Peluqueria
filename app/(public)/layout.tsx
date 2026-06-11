@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { prisma } from "@/lib/prisma"
 import PublicHeader from "@/components/public/layout/PublicHeader"
 import PublicFooter from "@/components/public/layout/PublicFooter"
@@ -10,6 +11,26 @@ async function getBusinessConfig(): Promise<Record<string, string>> {
     config[entry.key] = entry.value
   }
   return config
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await getBusinessConfig()
+  const businessName = config.business_name ?? "GlamStudio"
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+
+  return {
+    title: {
+      default: `${businessName} - Peluquería & Estilismo Profesional`,
+      template: `%s - ${businessName}`,
+    },
+    description:
+      config.business_description ??
+      "Tu salón de belleza y peluquería de confianza. Cortes, coloración, tratamientos capilares y más. Reserva tu cita online.",
+    openGraph: {
+      siteName: businessName,
+      url: siteUrl,
+    },
+  }
 }
 
 export default async function PublicLayout({

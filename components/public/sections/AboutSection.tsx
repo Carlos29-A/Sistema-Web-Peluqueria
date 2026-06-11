@@ -1,9 +1,13 @@
+"use client"
+
+import { useState } from "react"
 import Image from "next/image"
-import { Award, Heart, Sparkles } from "lucide-react"
+import { Award, Heart, Sparkles, ImageIcon } from "lucide-react"
 import Container from "../ui/Container"
-import { ABOUT_IMAGE } from "@/lib/constants/landing"
+import { ABOUT_IMAGE, FALLBACK_GRADIENT } from "@/lib/constants/landing"
 
 export default function AboutSection() {
+  const [aboutError, setAboutError] = useState(false)
   return (
     <section id="nosotros" className="py-20 lg:py-28 bg-gradient-to-b from-amber-50/40 to-white">
       <Container>
@@ -53,14 +57,21 @@ export default function AboutSection() {
           </div>
 
           <div className="order-1 lg:order-2 relative">
-            <div className="relative aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
-              <Image
-                src={ABOUT_IMAGE}
-                alt="Interior del salón GlamStudio"
-                fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-              />
+            <div className={`relative aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl ${aboutError ? FALLBACK_GRADIENT : ""}`}>
+              {aboutError ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <ImageIcon className="w-20 h-20 text-amber-300/50" />
+                </div>
+              ) : (
+                <Image
+                  src={ABOUT_IMAGE}
+                  alt="Interior del salón GlamStudio"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
+                  onError={() => setAboutError(true)}
+                />
+              )}
             </div>
             <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl p-5 max-w-[200px] hidden sm:block">
               <p className="text-3xl font-bold text-gray-900">8+</p>

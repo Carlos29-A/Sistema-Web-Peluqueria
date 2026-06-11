@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import { TriangleAlert, ArrowLeft, MessageCircle } from "lucide-react"
+import * as Sentry from "@sentry/nextjs"
 
 export default function ErrorPage({
   error,
@@ -12,6 +13,7 @@ export default function ErrorPage({
   reset: () => void
 }) {
   useEffect(() => {
+    Sentry.captureException(error)
     console.error("[ErrorBoundary]", error)
   }, [error])
 

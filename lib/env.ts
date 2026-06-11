@@ -3,6 +3,7 @@ import { z } from "zod"
 const envSchema = z.object({
   DATABASE_URL: z.string().url("DATABASE_URL debe ser una URL de conexión válida"),
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET debe tener al menos 32 caracteres"),
+  SENTRY_DSN: z.string().url().optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)

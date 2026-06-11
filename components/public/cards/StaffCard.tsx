@@ -1,6 +1,9 @@
+"use client"
+
+import { useState } from "react"
 import Image from "next/image"
 import { AtSign } from "lucide-react"
-import { UserCircle } from "lucide-react"
+import { PLACEHOLDERS } from "@/lib/constants/landing"
 
 interface StaffCardProps {
   name: string
@@ -11,22 +14,21 @@ interface StaffCardProps {
 }
 
 export default function StaffCard({ name, role, bio, photoUrl, instagram }: StaffCardProps) {
+  const [imgError, setImgError] = useState(false)
+  const showPlaceholder = !photoUrl || imgError
+  const imgSrc = showPlaceholder ? PLACEHOLDERS.staff : photoUrl
+
   return (
     <div className="group text-center">
       <div className="relative w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-4 border-white shadow-lg group-hover:scale-105 transition-transform">
-        {photoUrl ? (
-          <Image
-            src={photoUrl}
-            alt={name}
-            fill
-            sizes="128px"
-            className="object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center">
-            <UserCircle className="w-16 h-16 text-amber-300" />
-          </div>
-        )}
+        <Image
+          src={imgSrc}
+          alt={name}
+          fill
+          sizes="128px"
+          className={showPlaceholder ? "object-contain p-4" : "object-cover"}
+          onError={() => setImgError(true)}
+        />
       </div>
 
       <h3 className="text-lg font-bold text-gray-900">{name}</h3>

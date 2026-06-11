@@ -9,6 +9,7 @@ export const proxy = auth((req: NextAuthRequest) => {
 
   // Si es una ruta admin y no está logueado → al login
   if (isAdminRoute && !isLoggedIn && !isLoginPage) {
+    console.warn(`[Auth] Acceso no autorizado a ${req.nextUrl.pathname} desde ${req.headers.get("x-forwarded-for") ?? "IP desconocida"}`);
     return NextResponse.redirect(new URL("/admin/login", req.url));
   }
   // Si ya está logueado y va al login → al dashboard

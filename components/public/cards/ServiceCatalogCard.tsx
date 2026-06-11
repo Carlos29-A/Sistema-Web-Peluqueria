@@ -1,11 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Clock, ArrowRight } from "lucide-react"
 import type { CatalogService } from "@/types"
-import { SERVICE_CATEGORIES } from "@/lib/constants/landing"
+import { SERVICE_CATEGORIES, PLACEHOLDERS } from "@/lib/constants/landing"
 import { getCurrencySymbol } from "@/lib/validations/business-config"
 
 export interface ServiceCatalogCardProps extends CatalogService {
@@ -22,8 +23,12 @@ export default function ServiceCatalogCard({
   imageUrl,
   currency = "USD",
 }: ServiceCatalogCardProps) {
+  const [imgError, setImgError] = useState(false)
   const Icon =
     (category && SERVICE_CATEGORIES[category]) || SERVICE_CATEGORIES.default
+
+  const showPlaceholder = !imageUrl || imgError
+  const imgSrc = showPlaceholder ? PLACEHOLDERS.service : imageUrl
 
   return (
     <motion.article
@@ -39,19 +44,24 @@ export default function ServiceCatalogCard({
       className="group relative flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-[0_20px_50px_-12px_rgba(217,119,6,0.18)] hover:border-amber-200 transition-all duration-300"
     >
       {/* Imagen */}
-      <div className="relative h-64 overflow-hidden bg-gradient-to-br from-amber-100 via-orange-50 to-amber-50">
-        {imageUrl ? (
+      <div className="relative h-64 overflow-hidden bg-linear-to-br from-amber-100 via-orange-50 to-amber-50">
+        {showPlaceholder ? (
           <Image
-            src={imageUrl}
+            src={imgSrc}
+            alt={name}
+            fill
+            className="object-contain p-8"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+        ) : (
+          <Image
+            src={imgSrc}
             alt={name}
             fill
             className="object-cover group-hover:scale-110 transition-transform duration-500"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            onError={() => setImgError(true)}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Icon className="w-14 h-14 text-amber-300" />
-          </div>
         )}
         {/* Overlay gradiente sutil en hover */}
         <div className="absolute inset-0 bg-gradient-to-t from-amber-900/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

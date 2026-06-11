@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "./logger";
 
 // types para la paginación
 type PaginationMeta = {
@@ -50,6 +51,12 @@ export function error(
     status: number = 500,
     issues?: string[]
 ){
+    if (status >= 500) {
+        logger.error(`API 5xx: ${message}`, undefined, { status, issues })
+    } else if (status >= 400) {
+        logger.warn(`API 4xx: ${message}`, { status, issues })
+    }
+
     return NextResponse.json(
         {
             success: false, 

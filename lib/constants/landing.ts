@@ -18,6 +18,14 @@ export const HERO_IMAGE =
 export const ABOUT_IMAGE =
   "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1200&q=80"
 
+export const PLACEHOLDERS = {
+  service: "/images/placeholder-service.svg",
+  staff: "/images/placeholder-staff.svg",
+  gallery: "/images/placeholder-gallery.svg",
+} as const
+
+export const FALLBACK_GRADIENT = "bg-gradient-to-br from-amber-100 to-amber-50"
+
 export const TESTIMONIALS: Testimonial[] = [
   {
     id: 1,
