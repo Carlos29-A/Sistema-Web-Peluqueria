@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import { X, AlertCircle, Scissors, Loader2 } from "lucide-react"
@@ -51,8 +51,7 @@ export default function StaffForm({
     setValue,
     formState: { errors },
   } = useForm<StaffInput>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(staffSchema) as any,
+    resolver: zodResolver(staffSchema) as Resolver<StaffInput>,
     defaultValues: {
       name: initialData?.name ?? "",
       role: initialData?.role ?? "",

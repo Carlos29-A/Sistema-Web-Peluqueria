@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useForm, useWatch } from "react-hook-form"
+import { useForm, useWatch, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import { X, AlertCircle, Star } from "lucide-react"
@@ -46,8 +46,7 @@ export default function GalleryForm({
     control,
     formState: { errors },
   } = useForm<GalleryInput>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(gallerySchema) as any,
+    resolver: zodResolver(gallerySchema) as Resolver<GalleryInput>,
     defaultValues: {
       imageUrl: initialData?.imageUrl ?? "",
       description: initialData?.description ?? "",

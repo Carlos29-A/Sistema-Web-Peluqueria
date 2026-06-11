@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import { Save, Loader2, Building2, Phone, AtSign, Clock } from "lucide-react"
@@ -56,8 +56,7 @@ export default function ConfigForm() {
     handleSubmit,
     reset,
     formState: { errors, isDirty },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } = useForm<BusinessConfigFormInput>({ resolver: zodResolver(businessConfigFormSchema) as any,
+  } = useForm<BusinessConfigFormInput>({ resolver: zodResolver(businessConfigFormSchema) as Resolver<BusinessConfigFormInput>,
     defaultValues: {
       business_name: "",
       currency: "USD",
