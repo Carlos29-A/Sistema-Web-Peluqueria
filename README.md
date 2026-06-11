@@ -1,36 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GlamStudio — Sistema de Gestión para Peluquería
 
-## Getting Started
+Aplicación web para la gestión integral de una peluquería: reserva de citas online, administración de servicios, staff, horarios, galería de trabajos y configuración del negocio.
 
-First, run the development server:
+## Stack
+
+| Capa | Tecnología |
+|------|-----------|
+| Frontend | Next.js 16 (App Router), React 19, TypeScript |
+| UI | Tailwind CSS 4, Framer Motion, Lucide Icons, Sonner |
+| Formularios | react-hook-form + Zod |
+| Backend | Next.js API Routes (REST) |
+| Base de datos | PostgreSQL 16 + Prisma 7 ORM |
+| Autenticación | NextAuth.js v5 (Credentials + JWT) |
+| Imágenes | Cloudinary (upload widget) |
+| Monitoreo | Sentry |
+| Testing | Vitest + jsdom |
+
+## Requisitos
+
+- Node.js 20+
+- Docker (para PostgreSQL local)
+- Cuenta gratuita en [Cloudinary](https://cloudinary.com) (para subir imágenes)
+
+## Inicio rápido
 
 ```bash
+# 1. Clonar el repositorio
+git clone <repo-url>
+cd peluqueria-web
+
+# 2. Copiar y configurar variables de entorno
+cp .env.example .env
+# Editar .env con los valores correspondientes
+
+# 3. Iniciar PostgreSQL con Docker
+docker compose up -d
+
+# 4. Instalar dependencias
+npm install
+
+# 5. Ejecutar migraciones y seed
+npx prisma migrate dev
+npx prisma db seed
+
+# 6. Iniciar servidor de desarrollo
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Acceso al panel admin
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Email | Contraseña |
+|-------|-----------|
+| admin@peluqueria.com | admin123 |
 
-## Learn More
+La ruta `/admin` redirige al login automáticamente.
 
-To learn more about Next.js, take a look at the following resources:
+## Variables de entorno
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable | Obligatoria | Descripción |
+|----------|-------------|-------------|
+| `DATABASE_URL` | Sí | Conexión a PostgreSQL |
+| `AUTH_SECRET` | Sí | Secreto JWT (mín. 32 caracteres) |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Sí | Cloud name de Cloudinary |
+| `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` | Sí | Upload preset público en Cloudinary |
+| `NEXT_PUBLIC_SITE_URL` | No | URL base para SEO |
+| `SENTRY_DSN` | No | DSN de Sentry para error tracking |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts disponibles
 
-## Deploy on Vercel
+| Comando | Descripción |
+|---------|-------------|
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Build de producción |
+| `npm run start` | Iniciar servidor de producción |
+| `npm run lint` | ESLint |
+| `npm test` | Tests en modo watch |
+| `npm run test:run` | Tests (única ejecución) |
+| `npm run test:coverage` | Tests con cobertura |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Estructura del proyecto
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+├── (public)/          # Páginas públicas (landing, servicios, equipo, reservar)
+├── admin/             # Panel de administración (protegido)
+│   ├── citas/
+│   ├── servicios/
+│   ├── staff/
+│   ├── horarios/
+│   ├── galeria/
+│   └── configuracion/
+└── api/               # API REST
+    ├── appointments/
+    ├── services/
+    ├── staff/
+    ├── gallery/
+    └── business-config/
+components/
+├── public/            # Componentes públicos (layout, secciones, cards)
+└── admin/             # Componentes compartidos del admin
+lib/
+├── validations/       # Schemas Zod
+├── dto/               # Serializadores de datos
+├── utils/             # Utilidades (disponibilidad, fechas)
+└── api-client.ts      # Cliente HTTP para el API
+prisma/
+├── schema.prisma      # Modelos de base de datos
+├── seed.ts            # Datos iniciales
+└── migrations/
+```
+
+## API
+
+Todas las rutas siguen el patrón REST con respuestas consistentes:
+
+```json
+{ "success": true, "data": { ... } }
+{ "success": false, "error": { "code": "ERROR", "message": "...", "issues": [] } }
+{ "success": true, "data": [...], "meta": { "page": 1, "limit": 20, "total": 0 } }
+```
+
+Los endpoints de escritura requieren autenticación (sesión activa de admin) y tienen rate limiting.
+
+## Licencia
+
+Uso interno.
