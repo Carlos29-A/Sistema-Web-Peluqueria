@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Calendar } from "lucide-react"
+import { Calendar, Sparkles } from "lucide-react"
 import type { LandingService } from "@/types"
 import Container from "../ui/Container"
 import SectionHeader from "../ui/SectionHeader"
@@ -11,7 +11,25 @@ interface ServicesSectionProps {
 }
 
 export default function ServicesSection({ services, currency = "USD" }: ServicesSectionProps) {
-  if (services.length === 0) return null
+  if (services.length === 0) {
+    return (
+      <section id="servicios" className="py-20 lg:py-28 bg-white">
+        <Container>
+          <SectionHeader
+            eyebrow="Nuestros servicios"
+            title="Servicios diseñados para ti"
+            subtitle="Cortes, color, tratamientos y peinados para cada ocasión. Trabajamos con productos de primera calidad y técnicas de vanguardia."
+          />
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 mb-4">
+              <Sparkles className="w-8 h-8 text-amber-500" />
+            </div>
+            <p className="text-gray-500 text-lg">Próximamente estaremos agregando nuestros servicios.</p>
+          </div>
+        </Container>
+      </section>
+    )
+  }
 
   return (
     <section id="servicios" className="py-20 lg:py-28 bg-white">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react"
 import Image from "next/image"
+import { toast } from "sonner"
 import {
   ChevronLeft,
   ChevronRight,
@@ -129,6 +130,7 @@ export default function StepSelectStaff({
       setSlots(uniqueSlots)
     } catch {
       setSlots([])
+      toast.error("Error al cargar los horarios. Intentá de nuevo.")
     } finally {
       setLoadingSlots(false)
     }

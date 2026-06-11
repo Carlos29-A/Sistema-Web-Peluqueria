@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { X, Star } from "lucide-react"
+import { X, Star, ImageIcon } from "lucide-react"
 import type { PublicGalleryItem } from "@/types"
 import Container from "../ui/Container"
 import SectionHeader from "../ui/SectionHeader"
@@ -14,7 +14,25 @@ interface GallerySectionProps {
 export default function GallerySection({ items }: GallerySectionProps) {
   const [selected, setSelected] = useState<PublicGalleryItem | null>(null)
 
-  if (items.length === 0) return null
+  if (items.length === 0) {
+    return (
+      <section id="galeria" className="py-20 lg:py-28 bg-gradient-to-b from-white to-amber-50/30">
+        <Container>
+          <SectionHeader
+            eyebrow="Galería"
+            title="Nuestros trabajos"
+            subtitle="Una muestra del talento y la dedicación que ponemos en cada servicio."
+          />
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 mb-4">
+              <ImageIcon className="w-8 h-8 text-amber-500" />
+            </div>
+            <p className="text-gray-500 text-lg">Próximamente mostraremos nuestros trabajos.</p>
+          </div>
+        </Container>
+      </section>
+    )
+  }
 
   return (
     <section id="galeria" className="py-20 lg:py-28 bg-gradient-to-b from-white to-amber-50/30">

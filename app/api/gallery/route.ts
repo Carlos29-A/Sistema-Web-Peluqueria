@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { gallerySchema } from "@/lib/validations/gallery"
-import { error, paginated } from "@/lib/api-response"
+import { success, error, paginated } from "@/lib/api-response"
 import { toGalleryTableItem } from "@/lib/dto/gallery.dto"
 import { requireSession } from "@/lib/auth-guard"
 import { rateLimit, getClientIp } from "@/lib/rate-limit"
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       include,
     })
 
-    return NextResponse.json({ gallery }, { status: 201 })
+    return success(gallery, 201)
   } catch (err) {
     console.error("[POST /api/gallery]", err)
     return error("Error al crear la imagen de galería", 500)
